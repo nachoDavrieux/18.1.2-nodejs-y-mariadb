@@ -1,5 +1,7 @@
 const express = require("express");
 const mariadb = require("mariadb");
+const jwt = require("jsonwebtoken")
+const SECRET_KEY = "CLAVE ULTRA SECRETA";
 
 const pool = mariadb.createPool({
     host: "localhost",
@@ -19,8 +21,30 @@ app.get("/", (req, res) => {
     
     res.send("<h1>Bienvenido al servidor</h1>");
 });
+/*****************************************************************************/
 
+app.post("/login", (req, res) => {
+  const {username, password} = req.body;
+  if(username === "admin" && password === "admin"){
+    const token = jwt.sign({username}, SECRET_KEY);
+    res.status(200).json(token);
+  }else{
+    res.status(401).json({message: "Usuario y/o contraseña incorrectos"});
+  }
+});
 
+app.use("/todo", (req, res, next) => {
+  try {
+    var decoded = jwt.verify(req.headers["access-token"], SECRET_KEY);
+    console.log(decoded);
+    next();
+  } catch(err) {
+    console.log(err);
+    res.status(401).json({message: "Usuario no autorizado"});
+  }
+});
+
+/*****************************************************************************/
 app.get("/todo", async (req, res) => {
     let conn;
     try {
