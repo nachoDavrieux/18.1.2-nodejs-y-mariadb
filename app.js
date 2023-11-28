@@ -2,6 +2,8 @@ const express = require("express");
 const mariadb = require("mariadb");
 const jwt = require("jsonwebtoken")
 const SECRET_KEY = "CLAVE ULTRA SECRETA";
+const todoControllers = require("./controllers/todoController");
+const todoRouter = require("./routes/todoRoute");
 
 const pool = mariadb.createPool({
     host: "localhost",
@@ -10,7 +12,7 @@ const pool = mariadb.createPool({
     database: "planning",
     port: "3307",
     connectionLimit: 5,
-  });
+});
 
 const app = express();
 const port = 3000;
@@ -21,6 +23,7 @@ app.get("/", (req, res) => {
     
     res.send("<h1>Bienvenido al servidor</h1>");
 });
+
 /*****************************************************************************/
 
 app.post("/login", (req, res) => {
@@ -32,8 +35,8 @@ app.post("/login", (req, res) => {
     res.status(401).json({message: "Usuario y/o contraseña incorrectos"});
   }
 });
-
-app.use("/todo", (req, res, next) => {
+//middleware
+app.use("/todo", (req, res, next) => { //el next sirve habilitar cuando este todo ok, que pase
   try {
     var decoded = jwt.verify(req.headers["access-token"], SECRET_KEY);
     console.log(decoded);
@@ -44,22 +47,10 @@ app.use("/todo", (req, res, next) => {
   }
 });
 
+app.use("/todo", todoRouter);
+//en el fetch en el frontend hay que agregar el encabezado del token para que el servidor lo pueda recibir: 'access-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNzAwNjU0NTY4fQ.-Agag5lHt9f1Ci-IsmaOwbcUey234iRqq0Ud52M8-xM'
 /*****************************************************************************/
-app.get("/todo", async (req, res) => {
-    let conn;
-    try {
-      conn = await pool.getConnection();
-      const rows = await conn.query(
-        "SELECT id, NAME, description, created_at, updated_at, status FROM todo"
-      );
-  
-      res.json(rows);
-    } catch (error) {
-      res.status(500).json({ message: "Se rompió el servidor" });
-    } finally {
-      if (conn) conn.release(); //release to pool
-    }
-});
+
 
 app.get("/todo/:id", async (req, res) => {
     let conn;
